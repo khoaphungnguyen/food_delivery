@@ -2,30 +2,15 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/khoaphungnguyen/food_delivery/component/appcontext"
+	"github.com/khoaphungnguyen/food_delivery/module/restaurants/transport/ginrestaurant"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
-
-type Restaurant struct {
-	Id   int    `json:"id" gorm:"column:id;"`
-	Name string `json:"name" gorm:"column:name;"`
-	Addr string `json:"addr" gorm:"column:addr;"`
-}
-
-func (Restaurant) TableName() string { return "restaurants" }
-
-type RestaurantUpdate struct {
-	Name *string `json:"name" gorm:"column:name;"`
-	Addr *string `json:"addr" gorm:"column:addr;"`
-}
-
-func (RestaurantUpdate) TableName() string { return Restaurant{}.TableName() }
 
 func main() {
 	err := godotenv.Load() // 👈 load .env file
@@ -44,96 +29,28 @@ func main() {
 
 	// Use Gin to define routes
 	r := gin.Default()
+
+	appContext := appcontext.NewAppContext(db)
+
 	v1 := r.Group("/v1")
 
 	// register routes here
 	restaurants := v1.Group("/restaurants")
 
 	// CREATE API - Create a new restaurant
-	restaurants.POST("/", func(c *gin.Context) {
-		var data Restaurant
-		if err := c.ShouldBindJSON(&data); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		db.Create(&data)
-		c.JSON(http.StatusCreated, data)
-	})
+	restaurants.POST("/", ginrestaurant.CreateRestaurants(appContext))
 
-	// GET/READ API - Get a restaurant by ID from the database
-	restaurants.GET("/:id", func(c *gin.Context) {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		var data Restaurant
-		db.Where("id = ?", id).First(&data)
-		c.JSON(http.StatusOK, data)
+	// GET API - Get a restaurant by ID from the database
+	restaurants.GET("/:id", ginrestaurant.ListByIdRestaurants(appContext))
 
-	})
-	// GET/READ All API - Get all restaurants with page and limit parameters
-	restaurants.GET("/", func(c *gin.Context) {
-		type Paging struct {
-			Page  int `json:"page" form:"page"`
-			Limit int `json:"limit" form:"limit"`
-		}
-		var pagingData Paging
-		if err := c.ShouldBind(&pagingData); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		if pagingData.Page < 1 {
-			pagingData.Page = 1
-		}
-		if pagingData.Limit < 1 {
-			pagingData.Limit = 10
-		}
-		var data []Restaurant
-		db.Offset((pagingData.Page - 1) * pagingData.Limit).Order("id desc").Limit(pagingData.Limit).Find(&data)
-		c.JSON(http.StatusOK, data)
+	// GET All API - Get all restaurants with page and limit parameters
+	restaurants.GET("/", ginrestaurant.ListRestaurants(appContext))
 
-	})
 	// UPDATE API - Update restaurant's info by ID
-	restaurants.PATCH("/:id", func(c *gin.Context) {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		var data RestaurantUpdate
-		if err := c.ShouldBindJSON(&data); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		db.Where("id =?", id).Updates(&data)
-		c.JSON(http.StatusOK, data)
-	})
+	restaurants.PATCH("/:id", ginrestaurant.UpdateRestaurants(appContext))
 
 	// DELETE API Delete restaurant's info by ID from the database
-	restaurants.DELETE("/:id", func(c *gin.Context) {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		db.Where("id =?", id).Delete(&Restaurant{})
-		c.JSON(http.StatusOK, gin.H{
-			"message": "deleted",
-		})
-	})
+	restaurants.DELETE("/:id", ginrestaurant.DeleteRestaurants(appContext))
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
