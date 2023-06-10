@@ -16,19 +16,13 @@ func DeleteRestaurants(appCtx appcontext.AppContext) func(c *gin.Context) {
 		db := appCtx.GetMainDBConnection()
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
 		store := restaurantstorage.NewSQlStore(db)
 		biz := restaurantbusiness.NewDeleteRestaurantBiz(store)
 
 		if err := biz.DeleteRestaurant(c.Request.Context(), id); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-			})
-			return
+			panic(err)
 		}
 		c.JSON(http.StatusOK, common.SimpleSuccessResponse(true))
 	}

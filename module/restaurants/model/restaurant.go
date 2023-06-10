@@ -41,4 +41,5 @@ func (RestaurantUpdate) TableName() string { return Restaurant{}.TableName() }
 
 var (
 	ErrNameIsEmpty = errors.New("restaurant name is empty")
+	EntityName     = "restaurant"
 )

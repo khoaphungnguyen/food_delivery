@@ -2,8 +2,8 @@ package restaurantbusiness
 
 import (
 	"context"
-	"errors"
 
+	"github.com/khoaphungnguyen/food_delivery/common"
 	restaurantmodel "github.com/khoaphungnguyen/food_delivery/module/restaurants/model"
 )
 
@@ -29,13 +29,13 @@ func NewDeleteRestaurantBiz(store DeleteRestaurantStore) *deleteRestaurantBiz {
 func (biz *deleteRestaurantBiz) DeleteRestaurant(context context.Context, id int) error {
 	oldData, err := biz.store.FindDatatWithCondition(context, map[string]interface{}{"id": id})
 	if err != nil {
-		return err
+		return common.ErrEntityNotFound(restaurantmodel.EntityName, err)
 	}
 	if oldData.Status == 0 {
-		return errors.New("restaurant has been deleted")
+		return common.ErrCannotDeleteEntity(restaurantmodel.EntityName, nil)
 	}
 	if err := biz.store.Delete(context, id); err != nil {
-		return err
+		return common.ErrCannotDeleteEntity(restaurantmodel.EntityName, nil)
 	}
 	return nil
 }

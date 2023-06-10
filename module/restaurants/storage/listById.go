@@ -1,6 +1,7 @@
 package restaurantstorage
 
 import (
+	"github.com/khoaphungnguyen/food_delivery/common"
 	restaurantmodel "github.com/khoaphungnguyen/food_delivery/module/restaurants/model"
 	"golang.org/x/net/context"
 )
@@ -11,7 +12,7 @@ func (s *sqlStore) ListById(
 	id int,
 ) (*restaurantmodel.Restaurant, error) {
 	if err := s.db.Where("id = ?", id).First(&data).Error; err != nil {
-		return nil, err
+		return nil, common.ErrDB(err)
 	}
 	return data, nil
 }

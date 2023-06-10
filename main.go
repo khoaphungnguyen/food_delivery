@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/khoaphungnguyen/food_delivery/component/appcontext"
+	"github.com/khoaphungnguyen/food_delivery/middleware"
 	"github.com/khoaphungnguyen/food_delivery/module/restaurants/transport/ginrestaurant"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -27,10 +28,11 @@ func main() {
 	// Log all SQL statements into the console
 	db.Debug()
 
+	appContext := appcontext.NewAppContext(db)
 	// Use Gin to define routes
 	r := gin.Default()
 
-	appContext := appcontext.NewAppContext(db)
+	r.Use(middleware.Recover(appContext))
 
 	v1 := r.Group("/v1")
 
