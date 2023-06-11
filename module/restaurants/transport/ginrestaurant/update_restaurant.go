@@ -2,7 +2,6 @@ package ginrestaurant
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/khoaphungnguyen/food_delivery/common"
@@ -15,28 +14,20 @@ import (
 func UpdateRestaurants(appCtx appcontext.AppContext) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		db := appCtx.GetMainDBConnection()
-		id, err := strconv.Atoi(c.Param("id"))
+		uid, err := common.FromBase58(c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
+
 		var data restaurantmodel.RestaurantUpdate
 		if err := c.ShouldBindJSON(&data); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": err.Error(),
-			})
-			return
+			panic(err)
 		}
 		store := restaurantstorage.NewSQlStore(db)
 		biz := restaurantbusiness.NewUpdateRestaurantBiz(store)
 
-		if err := biz.UpdateRestaurant(c.Request.Context(), &data, id); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-			})
-			return
+		if err := biz.UpdateRestaurant(c.Request.Context(), &data, int(uid.GetLocalID())); err != nil {
+			panic(err)
 		}
 		c.JSON(http.StatusCreated, common.SimpleSuccessResponse(&data))
 	}
